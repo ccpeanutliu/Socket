@@ -1,2 +1,2 @@
 all:
-	g++ new.cpp -o new.o
+	g++ client.cpp -o client.out

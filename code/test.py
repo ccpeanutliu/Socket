@@ -11,7 +11,7 @@ print(recvm)
 login = 1
 
 while login == 1:
-	print('Input l or r: ')
+	print('Input "r" or "l": ')
 	inp = input()
 	if inp == 'r':
 		name = input('Your name: ')
@@ -47,6 +47,8 @@ while login != 1:
 	s.send(message.encode());
 	recvm = (s.recv(1024)).decode('utf-8')
 	print(recvm)
+	if recvm == "Bye":
+		break
 
 print('close socket\n')
 s.close()

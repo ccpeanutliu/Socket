@@ -7,6 +7,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <iostream>
+#include <string>
+#define B_SIZE 512
+
 using namespace std;
 
 int main(int argc , char *argv[])
@@ -36,13 +39,12 @@ int main(int argc , char *argv[])
         printf("Connection error\n");
         return 0;
     }
-    char message[100] = {};
-    char buffer[5000] = {};
-    char input_buf[100] = {};
-    char port[100] = {};
+
+    char buffer[B_SIZE] = {};
 
     bool tmp = 1;
-    char login = 'N';
+    int rec = 0;
+    string login, input_buf, port, message;
 
     recv(sockfd,buffer,sizeof(buffer),0);
     printf("%s",buffer);
@@ -51,85 +53,84 @@ int main(int argc , char *argv[])
     while(tmp)
     {
         memset(buffer,'\0',sizeof(buffer));
-        memset(message,'\0',sizeof(message));
-        
-        //cout << "\n" << tmp << "\n";
+        message.clear();
 
-        login = 'N';
-        memset(input_buf,'\0',sizeof(input_buf));
-        memset(port,'\0',sizeof(input_buf));
-        printf("Enter 'r' to Register, 'q' to Exit, 'l' to Login: ");
+        login.clear();
+        input_buf.clear();
+        port.clear();
+
+        printf("Enter 'r' to Register, 'q' to Exit, 'l' to Login:\n");
         cin >> login;
-        if(login == 'r')
+        if(login == "r")
         {
             printf("Enter your name to register: ");
-            scanf("%s", input_buf);
-            strcpy(message, "REGISTER#");
-            strcat(message, input_buf);
+            cin >> input_buf;
+            message = "REGISTER#" + input_buf + "\n";
         }
-        else if(login == 'q')
+        else if(login == "q")
+        {    
             printf("Bye\n");
+            break;
+        }
 
-        else if(login == 'l')
+        else if(login == "l")
         {
-            printf("Enter your name: ");
-            scanf("%s", input_buf);
-            printf("Enter your port: ");
-            scanf("%s", port);
-            strcpy(message, input_buf);
-            strcat(message,"#");
-            strcat(message, port);
+            printf("Enter your name: \n");
+            cin >> input_buf;
+            printf("Enter your port: \n");
+            cin >> port;
+            message = input_buf + "#" + port + "\n";
             tmp = 0;
         }
         else
             printf("***Please follow the rule****\n");
 
-        strcat(message,"\n");
-        send(sockfd,message,sizeof(message),0);
+        char send_m[B_SIZE];
+        send(sockfd,strcpy(send_m,message.c_str()),sizeof(message),0);
         recv(sockfd,buffer,sizeof(buffer),0);
 
         printf("\n*** Response from server *** \n\n");
         printf("%s\n", buffer);
         printf("*** over ***\n\n");
 
-        if(strstr(buffer, "AUTH_FAIL") != NULL)
+        if(strstr(buffer, "AUTH") != NULL)
             tmp = 1;
     }
     bool exit = 0;
     while(!tmp)
     {
         memset(buffer,'\0',sizeof(buffer));
-        memset(message,'\0',sizeof(message));
-
-        printf("Enter 'l' to  List online member, 'e' to Exit: ");
+        message.clear();
+        login.clear();
+        printf("Enter 'l' to  List online member, 'e' to Exit:\n");
         cin >> login;
-        if(login == 'l')
-            strcpy(message, "List");
-
-        else if(login == 'e')
-        {
-	    exit = 1;
-	    strcpy(message, "Exit");
-	}
+//        cout << "\n-------" << login << "--------\n";
+        if(login == "l"){
+            message = "List\n";
+        }
+        else if(login == "e"){
+	        exit = 1;
+	        message = "Exit\n";
+        }
         else
             printf("***Please follow the rule****\n");
 
-        strcat(message,"\n");
-        send(sockfd,message,sizeof(message),0);
+        char send_m[B_SIZE];
+        send(sockfd,strcpy(send_m,message.c_str()),sizeof(message),0);
         recv(sockfd,buffer,sizeof(buffer),0);
 
         printf("\n*** Response from server *** \n\n");
 
-        printf("%s",buffer);
-        
+        //printf("%s",buffer);
+        cout << buffer;
         if(strstr(buffer,"Bye") != NULL)
         {
             cout << "\n\n*** over ***\n\n";
             break;
         }
         cout << "\n*** over ***\n\n";
-	if(exit)
-	    break;
+	    //if(exit)
+	      //  break;
     }
     
     printf("close Socket\n");

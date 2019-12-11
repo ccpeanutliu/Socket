@@ -8,7 +8,6 @@
 #include <arpa/inet.h>
 #include <iostream>
 #include <string>
-
 #define B_SIZE 512
 
 using namespace std;
@@ -41,7 +40,7 @@ int main(int argc , char *argv[])
     struct sockaddr_in {
     short            sin_family;   // AF_INET,因為這是IPv4;
     unsigned short   sin_port;     // 儲存port No
-    struct in_addr   sin_addr;     // 
+    struct in_addr   sin_addr;     // 參見struct in_addr
     char             sin_zero[8];  // Not used, must be zero 
     };
     

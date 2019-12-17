@@ -1,0 +1,4 @@
+all:
+	g++ server.cpp -o server.o -lpt
+clean:
+	rm *.o

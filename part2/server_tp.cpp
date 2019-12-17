@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
-
+#include "ctpl_stl.h"
 #define BUFF_SIZE 1024
 
 using namespace std;
@@ -38,7 +38,7 @@ void * socketThread(void *arg)
         memset(client_message,'\0',sizeof(char)*BUFF_SIZE);
         recv(newSocket, client_message , sizeof(char)*BUFF_SIZE , 0);
         // Send message to the client socket 
-        pthread_mutex_lock(&lock);
+        //pthread_mutex_lock(&lock);
     
         message.assign(client_message);
         
@@ -108,7 +108,7 @@ void * socketThread(void *arg)
         //strcpy(buffer,message);
         //free(message);
         //send(newSocket,buffer,sizeof(char)*BUFF_SIZE,0);
-        pthread_mutex_unlock(&lock);
+        //pthread_mutex_unlock(&lock);
         //sleep(1);
     }
     int first_log = 0;
@@ -136,7 +136,7 @@ void * socketThread(void *arg)
         else
         {
             recv(newSocket, client_message , sizeof(char)*BUFF_SIZE , 0);
-            pthread_mutex_lock(&lock);
+            //pthread_mutex_lock(&lock);
             message.assign(client_message);
             if(message.compare("List\n") == 0)
             {
@@ -170,14 +170,14 @@ void * socketThread(void *arg)
                 break;
             }
         }
-        pthread_mutex_unlock(&lock);
+        //pthread_mutex_unlock(&lock);
     }
 
     printf("Exit socketThread \n");
     online --;
-    pthread_mutex_unlock(&lock);
+    //pthread_mutex_unlock(&lock);
     close(newSocket);
-    pthread_exit(NULL);
+    //pthread_exit(NULL);
 }
 int main(){
     int serverSocket, newSocket;
@@ -185,10 +185,10 @@ int main(){
     struct sockaddr_storage serverStorage;
     socklen_t addr_size;
     //Create the socket. 
-    serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+    serverSocket = socket(PF_INET, SOCK_STREAM, 0);
     // Configure settings of the server address struct
     // Address family = Internet 
-    serverAddr.sin_family = PF_INET;
+    serverAddr.sin_family = AF_INET;
     //Set port number, using htons function to use proper byte order 
     serverAddr.sin_port = htons(7799);
     //Set IP address to localhost 
@@ -202,6 +202,7 @@ int main(){
         printf("Listening\n");
     else
         printf("Error\n");
+    /*
     pthread_t tid[60];
     int i = 0;
     while(1)
@@ -222,6 +223,20 @@ int main(){
             }
             i = 0;
         }
+    }
+    */
+
+    ctpl::thread_pool p(2 /* two threads in the pool */);
+    int arr[4] = {0};
+    std::vector<std::future<void>> results(4);
+    for (int i = 0; i < 8; ++i) { // for 8 iterations,
+        for (int j = 0; j < 4; ++j) {
+            results[j] = p.push([&arr, j](int){ arr[j] +=2; });
+        }
+        for (int j = 0; j < 4; ++j) {
+            results[j].get();
+        }
+        //arr[4] = std::min_element(arr, arr + 4);
     }
     return 0;
 }

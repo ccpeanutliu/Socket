@@ -23,9 +23,16 @@ vector <string> online_member;
 //char buffer[BUFF_SIZE];
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
+
+struct socketAndIP{
+    int socket;
+    string ip;
+};
+
 void * socketThread(void *arg)
-{
-    int newSocket = *((int *)arg);
+{   
+    struct socketAndIP getSocketIP = *((struct socketAndIP *)arg);
+    int newSocket = getSocketIP.socket;
     string message, save, ip_addr, port, loginAs;
     char buffer[BUFF_SIZE] = "Hello, welcome!\n";
     cout << "Connect to client.\n";
@@ -92,7 +99,8 @@ void * socketThread(void *arg)
                 port = message.substr(message.find("#")+1,message.find("\n")-message.find("#")-1);
                 port_arr[count] = port;
                 tmp = 0;
-                ip_addr = "127.0.0.1";
+                //ip_addr = "127.0.0.1";
+                ip_addr = getSocketIP.ip;
                 loginAs = save + "#" + ip_addr + "#" + port + "\n";
                 online_member.push_back(save + "#" + ip_addr + "#" + port + "\n");
                 online ++;
@@ -204,20 +212,13 @@ int main(int argc, char *argv[]){
     struct sockaddr_storage serverStorage;
     socklen_t addr_size;
     //Create the socket. 
-    serverSocket = socket(AF_INET, SOCK_STREAM, 0);
-    // Configure settings of the server address struct
-    // Address family = Internet 
-    serverAddr.sin_family = PF_INET;
-    //Set port number, using htons function to use proper byte order
     int server_port = atoi(argv[1]);
+    serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+    serverAddr.sin_family = PF_INET;
     serverAddr.sin_port = htons(server_port);
-    //Set IP address to localhost 
     serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    //Set all bits of the padding field to 0 
     memset(serverAddr.sin_zero, '\0', sizeof serverAddr.sin_zero);
-    //Bind the address struct to the socket 
     bind(serverSocket, (struct sockaddr *) &serverAddr, sizeof(serverAddr));
-    //Listen on the socket, with 40 max connection requests queued 
     
     
     
@@ -230,11 +231,25 @@ int main(int argc, char *argv[]){
     while(1)
     {
         //Accept call creates a new socket for the incoming connection
-        addr_size = sizeof serverStorage;
-        newSocket = accept(serverSocket, (struct sockaddr *) &serverStorage, &addr_size);
+        //為新的連接創一個新的socket
+        struct sockaddr_in clientAddress;
+        socklen_t clientLen = sizeof(clientAddress);
+        newSocket = accept(serverSocket, (struct sockaddr *) &clientAddress, &clientLen);
+        string get_client_ip;
+        if(getpeername(newSocket, (sockaddr *) &clientAddress, &clientLen))
+            cout << "Failed to get client ip";
+        else
+        {
+            get_client_ip = inet_ntoa(clientAddress.sin_addr);
+            cout << "The ip of new client:" << get_client_ip << "\n";
+        }
         //for each client request creates a thread and assign the client request to it to process
+        //每一個新連結的client, 都幫它創一個thread
         //so the main thread can entertain next request
-        if( pthread_create(&tid[i], NULL, socketThread, &newSocket) != 0 )
+        struct socketAndIP newSocketIP;
+        newSocketIP.socket = newSocket;
+        newSocketIP.ip = get_client_ip;
+        if( pthread_create(&tid[i], NULL, socketThread, &newSocketIP) != 0 )
             printf("Failed to create thread\n");
         if( i >= 50)
         {
@@ -248,3 +263,4 @@ int main(int argc, char *argv[]){
     }
     return 0;
 }
+

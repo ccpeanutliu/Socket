@@ -65,7 +65,7 @@ void * socketThread(void *arg)
             }
             if(already)
             {
-                message = "210 AUTH\n";
+                message = "210 AUTH (ACCOUNT ALREADY REGISTER)\n";
                 strcpy(buffer,message.c_str());
                 send(newSocket,buffer,sizeof(char)*BUFF_SIZE,0);
             }
@@ -80,7 +80,7 @@ void * socketThread(void *arg)
         }
         else if(message.find("#") != string::npos)
         {
-            bool already = 0;
+            int already = 0;
             string name(message.substr(0,message.find("#")));
             //cout << name << "...";
             for(int i = 0; i < count; i++)
@@ -92,9 +92,17 @@ void * socketThread(void *arg)
                     break;
                 }
             }
+            for(int i = 0; i < online; i++)
+            {
+                if(online_member[i].find(name) != string::npos)
+                {
+                    already = -1;
+                    break;
+                }
+            }
 
         //cout << already;
-            if(already)
+            if(already == 1)
             {
                 port = message.substr(message.find("#")+1,message.find("\n")-message.find("#")-1);
                 port_arr[count] = port;
@@ -105,9 +113,15 @@ void * socketThread(void *arg)
                 online_member.push_back(save + "#" + ip_addr + "#" + port + "\n");
                 online ++;
             }
+            else if(already == -1)
+            {
+                message = "220 AUTH_FAIL (ACCOUNT ALREADY LOGIN)\n";
+                strcpy(buffer,message.c_str());
+                send(newSocket,buffer,sizeof(char)*BUFF_SIZE,0);
+            }
             else
             {
-                message = "220 AUTH_FAIL\n";
+                message = "220 AUTH_FAIL (ACCOUNT DOESN'T EXIST)\n";
                 strcpy(buffer,message.c_str());
                 send(newSocket,buffer,sizeof(char)*BUFF_SIZE,0);
             }

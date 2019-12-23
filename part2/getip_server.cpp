@@ -217,7 +217,7 @@ void * socketThread(void *arg)
 int main(int argc, char *argv[]){
     if(argc < 2)
     {
-        cout << "./server.o [port].\n";
+        cout << "./getip_server.o [port].\n";
         return 0;
     }
 

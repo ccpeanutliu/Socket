@@ -138,18 +138,13 @@ int main(int argc , char *argv[])
         else if(method == 5)
         {
             string name;
-            string text;
-            cout << "who do you want to contact?";
+            cout << "who do you want to contact?\n";
             cout << "name: ";
             cin >> name;
-            strcpy(sendbuf, login_name.c_str());
-            strcat(sendbuf, "#");
-            cout << "Your text: ";
-            cin >> text;
-            strcat(sendbuf, text.c_str());
-            strcat(sendbuf, "#");
+            strcat(sendbuf, "Conversation#");
             strcat(sendbuf, name.c_str());
             strcat(sendbuf, "\n");
+
         }
         else
         {
@@ -168,6 +163,9 @@ int main(int argc , char *argv[])
         {    
             isLogin = false;
             login_name.clear();
+        }
+        else if(judge.find("IP address") != string::npos)
+        {
         }
     }
     

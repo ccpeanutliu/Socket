@@ -19,7 +19,6 @@ int online = 0;
 char client_message[BUFF_SIZE];
 string port_arr[500];
 string name_arr[500];
-vector <string> online_member;
 //char buffer[BUFF_SIZE];
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 string get_client_ip;
@@ -28,6 +27,14 @@ struct socketAndIP{
     int socket;
     string ip;
 };
+
+struct clientinfo{
+    string name;
+    string ipAddr;
+    string portnum;
+};
+
+vector <struct clientinfo> onlineinfo;
 
 void * socketThread(void *arg)
 { 
@@ -94,7 +101,7 @@ void * socketThread(void *arg)
             }
             for(int i = 0; i < online; i++)
             {
-                if(online_member[i].find(name) != string::npos)
+                if(onlineinfo[i].name == name)
                 {
                     already = -1;
                     break;
@@ -105,22 +112,25 @@ void * socketThread(void *arg)
             if(already == 1)
             {
                 port = message.substr(message.find("#")+1,message.find("\n")-message.find("#")-1);
-                port_arr[count] = port;
+                //port_arr[count] = port;
                 tmp = 0;
-                //ip_addr = "127.0.0.1";
-                loginAs = save + "#" + ip_addr + "#" + port + "\n";
-                online_member.push_back(save + "#" + ip_addr + "#" + port + "\n");
+
+                struct clientinfo thisinfo;
+                thisinfo.name = save;
+                thisinfo.ipAddr = ip_addr;
+                thisinfo.portnum = port;
+                onlineinfo.push_back(thisinfo);
                 online ++;
             }
             else if(already == -1)
             {
-                message = "220 AUTH_FAIL (ACCOUNT ALREADY LOGIN)\n";
+                message = "220 AUTH_FAIL\nerror: ACCOUNT ALREADY LOGIN\n";
                 strcpy(buffer,message.c_str());
                 send(newSocket,buffer,sizeof(char)*BUFF_SIZE,0);
             }
             else
             {
-                message = "220 AUTH_FAIL (ACCOUNT DOESN'T EXIST)\n";
+                message = "220 AUTH_FAIL\nerror: ACCOUNT DOESN'T EXIST\n";
                 strcpy(buffer,message.c_str());
                 send(newSocket,buffer,sizeof(char)*BUFF_SIZE,0);
             }
@@ -155,7 +165,12 @@ void * socketThread(void *arg)
             message += "\n";
             for(int i = 0; i < online; i++)
             {
-                message += online_member[i];
+                message += onlineinfo[i].name;
+                message += "#";
+                message += onlineinfo[i].ipAddr;
+                message += "#";
+                message += onlineinfo[i].portnum;
+                message += "\n";
             }
             strcpy(buffer,message.c_str());
             send(newSocket,buffer,sizeof(char)*BUFF_SIZE,0);
@@ -176,7 +191,13 @@ void * socketThread(void *arg)
                 message += "\n";
                 for(int i = 0; i < online; i++)
                 {
-                    message += online_member[i];
+                    //message += online_member[i];
+                    message += onlineinfo[i].name;
+                    message += "#";
+                    message += onlineinfo[i].ipAddr;
+                    message += "#";
+                    message += onlineinfo[i].portnum;
+                    message += "\n";
                 }
                 strcpy(buffer,message.c_str());
                 send(newSocket,buffer,sizeof(char)*BUFF_SIZE,0);
@@ -190,23 +211,29 @@ void * socketThread(void *arg)
                 tmp = 0;
                 for(int i = 0; i < online; i++)
                 {
-                    if(online_member[i] == loginAs)
-                    {
+                    if(onlineinfo[i].name == save)
                         logout = i;
-                    }
                 }
-                online_member.erase(online_member.begin()+logout);
+                //online_member.erase(online_member.begin()+logout);
+                onlineinfo.erase(onlineinfo.begin()+logout);
                 break;
             }
             else if(message.find("#") != string::npos)
             {
-                string active(message.substr(0,message.find("#"))); // 連接方
-                string last(message.substr(message.find("#")+1,message.find("\n")-message.find("#")));
-                string contact_message(last.substr(0,last.find("#"))); //訊息
-                string passive(last.substr(last.find("#"),last.find("\n")-last.find("#"))); //被連接
-                cout << "\nactive: " << active << "\nlast: " << last;
-                cout << "\nmessage: " << contact_message << "\npassive: " << passive;
-                strcpy(buffer, "Establish conversation...");
+                string contact(message.find("#")+1,message.find("\n")-message.find("#")-1);
+                string contactip;
+                for(int i = 0; i < online; i++)
+                {
+                    if(onlineinfo[i].name == contact)
+                    {
+                        contactip = onlineinfo[i].ipAddr;
+                        break;
+                    }
+                }
+                strcpy(buffer, contact);
+                strcat(buffer, "'s IP address: ");
+                strcat(buffer, contactip);
+                strcat(buffer, "\n");
                 send(newSocket, buffer, BUFF_SIZE, 0);
             }
             else{

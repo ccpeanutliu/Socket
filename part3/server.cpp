@@ -17,8 +17,9 @@ using namespace std;
 int count = 0;
 int online = 0;
 char client_message[BUFF_SIZE];
-string port_arr[500];
-string name_arr[500];
+//string port_arr[500];
+
+//string name_arr[500];
 //char buffer[BUFF_SIZE];
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 string get_client_ip;
@@ -30,16 +31,19 @@ struct socketAndIP{
 
 struct clientinfo{
     string name;
+    int money;
     string ipAddr;
     string portnum;
 };
 
 vector <struct clientinfo> onlineinfo;
+vector <struct clientinfo> allinfo;
 
 void * socketThread(void *arg)
 { 
     int newSocket = *((int *)arg);
     string message, save, port, loginAs;
+    int save_money;
     string ip_addr = get_client_ip;
     char buffer[BUFF_SIZE] = "Hello, welcome!\n";
     cout << "Connect to client.\n";
@@ -64,7 +68,7 @@ void * socketThread(void *arg)
             string name(message.substr(9,message.find("\n")-9));
             for(int i = 0; i < count; i++)
             {
-                if(name_arr[i].compare(name) == 0)
+                if((allinfo[i].name).compare(name) == 0)
                 {
                     already = 1;
                     break;
@@ -81,7 +85,11 @@ void * socketThread(void *arg)
                 message = "100 OK\n";
                 strcpy(buffer,message.c_str());
                 send(newSocket,buffer,sizeof(char)*BUFF_SIZE,0);
-                name_arr[count] = name;
+                struct clientinfo tmp;
+                tmp.name = name;
+                tmp.money = 10000;
+                allinfo.push_back(tmp);
+                //name_arr[count] = name;
                 count ++;
             }
         }
@@ -92,9 +100,10 @@ void * socketThread(void *arg)
             //cout << name << "...";
             for(int i = 0; i < count; i++)
             {
-                if(name_arr[i].compare(name) == 0)
+                if((allinfo[i].name).compare(name) == 0)
                 {
-                    save = name_arr[i];
+                    save = allinfo[i].name;
+                    save_money = allinfo[i].money;
                     already = 1;
                     break;
                 }
@@ -117,6 +126,7 @@ void * socketThread(void *arg)
 
                 struct clientinfo thisinfo;
                 thisinfo.name = save;
+                thisinfo.money = save_money;
                 thisinfo.ipAddr = ip_addr;
                 thisinfo.portnum = port;
                 onlineinfo.push_back(thisinfo);
@@ -159,8 +169,8 @@ void * socketThread(void *arg)
         message.clear();
         if(first_log == 0)
         {
-            message = "10000\n";
-            message += "numbers of online client:";
+            message = to_string(save_money);
+            message += "\nnumbers of online client:";
             message += to_string(online);
             message += "\n";
             for(int i = 0; i < online; i++)
@@ -185,8 +195,8 @@ void * socketThread(void *arg)
             if(message.compare("List\n") == 0)
             {
                 message.clear();
-                message = "10000\n";
-                message += "numbers of online client:";
+                message = to_string(save_money);
+                message += "\nnumbers of online client:";
                 message += to_string(online);
                 message += "\n";
                 for(int i = 0; i < online; i++)
@@ -253,6 +263,42 @@ void * socketThread(void *arg)
                     strcpy(buffer, "250 NOT_ONLINE\n");
                     cout << buffer;
                     send(newSocket, buffer, BUFF_SIZE, 0);
+                }
+            }
+            else if(message.find("#") != string::npos)
+            {
+                string sender, receiver, tmp;
+                int tran_money;
+                tmp = message.substr(message.find("#")+1);
+                sender = message.substr(0,message.find("#"));
+                receiver = tmp.substr(0,tmp.find("#"));
+                tmp = tmp.substr(tmp.find("#")+1);
+                tran_money = atoi(tmp.c_str());
+                for(int i = 0; i < online; i++)
+                {
+                    if(onlineinfo[i].name == sender)
+                    {
+                        onlineinfo[i].money -= tran_money;
+                    }
+                    if(onlineinfo[i].name == receiver)
+                    {
+                        onlineinfo[i].money += tran_money;
+                    }
+                    if(save == sender)
+                        save_money -= tran_money;
+                    if(save == receiver)
+                        save_money += tran_money;
+                }
+                for(int i = 0; i < count; i++)
+                {
+                    if(allinfo[i].name == sender)
+                    {
+                        allinfo[i].money -= tran_money;
+                    }
+                    if(allinfo[i].name == receiver)
+                    {
+                        allinfo[i].money += tran_money;
+                    }
                 }
             }
             else{

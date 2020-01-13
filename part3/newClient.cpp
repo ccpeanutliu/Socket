@@ -206,6 +206,7 @@ int main(int argc , char *argv[])
                 strcat(sendbuf, "\n");
 
                 send(sockfd2, sendbuf, B_SIZE, 0);
+                close(sockfd2);
             }
             else
                 wait(&status);
@@ -238,6 +239,7 @@ int main(int argc , char *argv[])
                 if( bind(socket_desc2,(struct sockaddr *)&server2 , sizeof(server2)) < 0)
                 {
                     puts("bind failed");
+                    continue;
                     return 1;
                 }
                 //puts("bind done");
@@ -254,12 +256,22 @@ int main(int argc , char *argv[])
                 }
                 memset(buffer,'\0',sizeof(buffer));
                 recv(new_socket2, buffer, B_SIZE, 0);
-                cout << buffer;
+                string rcvmsg(buffer);
+                int tran_money;
+                //cout << buffer;
 
                 close(fd[0]);
                 close(fd[1]);
                 close(new_socket2);
                 //puts("Connection accepted");
+                memset(sendbuf,'\0',sizeof(sendbuf));
+                strcpy(sendbuf, (rcvmsg.substr(0,rcvmsg.find("#"))).c_str());
+                strcat(sendbuf, "#");
+                strcat(sendbuf, login_name.c_str());
+                strcat(sendbuf, "#");
+                strcat(sendbuf, (rcvmsg.substr(rcvmsg.find("#")+1)).c_str());
+                cout << sendbuf << ":";
+                send(sockfd, sendbuf, B_SIZE, 0);
             }
             continue;
         }

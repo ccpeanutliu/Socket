@@ -43,7 +43,7 @@ void * socketThread(void *arg)
 { 
     int newSocket = *((int *)arg);
     string message, save, port, loginAs;
-    int save_money;
+    int save_money = 0;
     string ip_addr = get_client_ip;
     char buffer[BUFF_SIZE] = "Hello, welcome!\n";
     cout << "Connect to client.\n";
@@ -169,7 +169,15 @@ void * socketThread(void *arg)
         message.clear();
         if(first_log == 0)
         {
-            message = to_string(save_money);
+            //message = to_string(save_money);
+            for(int i = 0; i < count; i++)
+            {
+                if(allinfo[i].name == save)
+                {
+                    message = to_string(allinfo[i].money);
+                    break;
+                }
+            }
             message += "\nnumbers of online client:";
             message += to_string(online);
             message += "\n";
@@ -195,7 +203,15 @@ void * socketThread(void *arg)
             if(message.compare("List\n") == 0)
             {
                 message.clear();
-                message = to_string(save_money);
+                //message = to_string(save_money);
+                for(int i = 0; i < count; i++)
+                {
+                    if(allinfo[i].name == save)
+                    {
+                        message = to_string(allinfo[i].money);
+                        break;
+                    }
+                }
                 message += "\nnumbers of online client:";
                 message += to_string(online);
                 message += "\n";
@@ -274,13 +290,11 @@ void * socketThread(void *arg)
                 receiver = tmp.substr(0,tmp.find("#"));
                 tmp = tmp.substr(tmp.find("#")+1);
                 tran_money = atoi(tmp.c_str());
-
-                cout << "sender ->" << sender << endl;
-
-                cout << "receiver->" << receiver << endl;
-
-                cout << "transaction ->" << tran_money << endl;
-
+                cout << "----start transaction----\n";
+                cout << "sender -> " << sender << endl;
+                cout << "receiver-> " << receiver << endl;
+                cout << "amount of money -> " << tran_money << endl;
+                cout << "----end transaction----\n";
                 for(int i = 0; i < online; i++)
                 {
                     if(onlineinfo[i].name == sender)
@@ -291,10 +305,6 @@ void * socketThread(void *arg)
                     {
                         onlineinfo[i].money += tran_money;
                     }
-                    if(save == sender)
-                        save_money -= tran_money;
-                    if(save == receiver)
-                        save_money += tran_money;
                 }
                 for(int i = 0; i < count; i++)
                 {
@@ -307,6 +317,8 @@ void * socketThread(void *arg)
                         allinfo[i].money += tran_money;
                     }
                 }
+                //cout << "name: " << save << "\nmoney: " << save_money << endl;
+                
             }
             else{
                 message.clear();

@@ -274,6 +274,13 @@ void * socketThread(void *arg)
                 receiver = tmp.substr(0,tmp.find("#"));
                 tmp = tmp.substr(tmp.find("#")+1);
                 tran_money = atoi(tmp.c_str());
+
+                cout << "sender ->" << sender << endl;
+
+                cout << "receiver->" << receiver << endl;
+
+                cout << "transaction ->" << tran_money << endl;
+
                 for(int i = 0; i < online; i++)
                 {
                     if(onlineinfo[i].name == sender)

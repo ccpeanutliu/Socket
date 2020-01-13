@@ -7,15 +7,11 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <string>
-#include <openssl/rsa.h>
-#include <openssl/pem.h>
-#include <iomanip>
-#include <fstream>
 #include <iostream>
 #include <sys/wait.h>
 using namespace std;
 #define B_SIZE 512
-#define PASS "8888"
+
 
 int main(int argc , char *argv[])
 {
@@ -209,43 +205,7 @@ int main(int argc , char *argv[])
                 strcat(sendbuf, money.c_str());
                 strcat(sendbuf, "\n");
 
-/* encrypt start */
-                FILE *fp;
-                RSA *publicRsa = nullptr;
-                if((fp = fopen("pub.pem","r")) == NULL) {
-                    cout << "pub Error" << endl;
-                    exit(-1);
-                }
-                // 初始化算法庫
-                OpenSSL_add_all_algorithms();
-                // 從 .pem 格式讀取公私鑰
-                if ((publicRsa = PEM_read_RSA_PUBKEY(fp, NULL, NULL, NULL)) == NULL) 
-                {
-                    printf("PEM_read_RSA_PUBKEY error\n");
-                    return -1;
-                }
-                fclose(fp);
-                unsigned char *source = (unsigned char *)sendbuf;// plaintxt
-                int rsa_len = RSA_size(publicRsa); // 幫你算可以加密 block 大小，字數超過要分開加密
-
-                // 要開空間來存放加解密結果，型態要改成 unsigned char *
-
-                unsigned char *encryptMsg = (unsigned char *)malloc(rsa_len);
-                memset(encryptMsg, 0, rsa_len); 
-
-                int len = rsa_len - 11;
-        
-                if (RSA_public_encrypt(len, source, encryptMsg, publicRsa, RSA_PKCS1_PADDING) < 0)
-                    printf("RSA_public_encrypt error\n");
-                //cerr << "enc: " <<(const char*) enc << ":" << endl;
-                //cerr << "enc: " << enc << ":" << endl;
-                RSA_free(publicRsa);
-
-                //cout << "len:" << strlen( (const char*) enc) << endl;
-/* encrypt done*/
-                cout << "encrypt -> " << encryptMsg << endl;
-                send(sockfd2, (const char*)encryptMsg, strlen((const char*) encryptMsg), 0);
-                // send(sockfd2, sendbuf, B_SIZE, 0); doesn't encrypt
+                send(sockfd2, sendbuf, B_SIZE, 0);
                 close(sockfd2);
             }
             else
@@ -296,48 +256,13 @@ int main(int argc , char *argv[])
                 }
                 memset(buffer,'\0',sizeof(buffer));
                 recv(new_socket2, buffer, B_SIZE, 0);
-
-/* start decrypt */
-
-                FILE *fp;
-                RSA *privateRsa = nullptr;
-                if((fp = fopen("pri.pem","r")) == NULL) {
-                    cout << "pri Error" << endl;
-                    exit(-1);
-                }
-                OpenSSL_add_all_algorithms();//密钥有经过口令加密需要这个函数
-                if ((privateRsa = PEM_read_RSAPrivateKey(fp, NULL, NULL, (char *)PASS)) == NULL) 
-                {
-                    printf("PEM_read_RSAPrivateKey error\n");
-                    return NULL;
-                }
-                fclose(fp);
-                unsigned char *source = (unsigned char *)buffer;// ciphertxt
-
-                int rsa_len = RSA_size(privateRsa);
-                unsigned char *decryptMsg = (unsigned char *)malloc(rsa_len);
-                memset(decryptMsg, 0, rsa_len);
-                int mun =  RSA_private_decrypt(rsa_len, source, decryptMsg, privateRsa, RSA_PKCS1_PADDING);
-                if ( mun < 0)
-                    printf("RSA_private_decrypt error\n");
-                else
-                {   
-                    printf("RSA_private_decrypt %s\n", decryptMsg);
-                }
-                //cerr << "enc: " <<(const char*) enc << ":" << endl;
-                //cerr << "enc: " << enc << ":" << endl;
-                RSA_free(privateRsa);
-
-/* end of decrypt */
-
-
-                string rcvmsg((char*)(decryptMsg));
-                cout << "decrypt -> " << rcvmsg << endl;
-                //string rcvmsg(buffer);
+                string rcvmsg(buffer);
                 int tran_money;
                 //cout << buffer;
 
-                
+                close(fd[0]);
+                close(fd[1]);
+                close(new_socket2);
                 //puts("Connection accepted");
                 memset(sendbuf,'\0',sizeof(sendbuf));
                 strcpy(sendbuf, (rcvmsg.substr(0,rcvmsg.find("#"))).c_str());
@@ -345,56 +270,13 @@ int main(int argc , char *argv[])
                 strcat(sendbuf, login_name.c_str());
                 strcat(sendbuf, "#");
                 strcat(sendbuf, (rcvmsg.substr(rcvmsg.find("#")+1)).c_str());
-                cout << "sendbuf -> " << sendbuf << endl;
-
-/* encrypt start */
-
-                FILE *fp1;
-                RSA *publicRsa = nullptr;
-                if((fp1 = fopen("pub1.pem","r")) == NULL) {
-                    cout << "pub Error" << endl;
-                    exit(-1);
-                }
-                // 初始化算法庫
-                OpenSSL_add_all_algorithms();
-                // 從 .pem 格式讀取公私鑰
-                if ((publicRsa = PEM_read_RSA_PUBKEY(fp, NULL, NULL, NULL)) == NULL) 
-                {
-                    printf("PEM_read_RSA_PUBKEY error\n");
-                    return -1;
-                }
-                fclose(fp);
-                unsigned char *source1 = (unsigned char *)sendbuf;// plaintxt
-                rsa_len = RSA_size(publicRsa); // 幫你算可以加密 block 大小，字數超過要分開加密
-
-                // 要開空間來存放加解密結果，型態要改成 unsigned char *
-
-                unsigned char *encryptMsg = (unsigned char *)malloc(rsa_len);
-                memset(encryptMsg, 0, rsa_len); 
-
-                int len = rsa_len - 11;
-        
-                if (RSA_public_encrypt(len, source1, encryptMsg, publicRsa, RSA_PKCS1_PADDING) < 0)
-                    printf("RSA_public_encrypt error\n");
-                //cerr << "enc: " <<(const char*) enc << ":" << endl;
-                //cerr << "enc: " << enc << ":" << endl;
-                RSA_free(publicRsa);
-
-                //cout << "len:" << strlen( (const char*) enc) << endl;
-/* encrypt done*/
-
-
-                //send(sockfd, sendbuf, B_SIZE, 0);
-                cout << "to server -> " << encryptMsg << endl;
-                send(sockfd, (const char*)encryptMsg, strlen((const char*) encryptMsg), 0);
-                close(fd[0]);
-                close(fd[1]);
-                close(new_socket2);
+                cout << sendbuf << endl;
+                send(sockfd, sendbuf, B_SIZE, 0);
             }
             continue;
         }
 
-        /* transaction~~~ */
+        // transaction~~~
         else
         {
             cout << "\nSomething wrong!!!\n";

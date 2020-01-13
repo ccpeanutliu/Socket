@@ -15,7 +15,7 @@
 #include <iomanip>
 #include <fstream>
 
-#define PASS "8888"
+
 #define BUFF_SIZE 1024
 
 using namespace std;
@@ -286,46 +286,8 @@ void * socketThread(void *arg)
                     send(newSocket, buffer, BUFF_SIZE, 0);
                 }
             }
-            else// if(message.find("#") != string::npos)
+            else if(message.find("#") != string::npos)
             {
-
-
-/* start decrypt */
-
-                FILE *fp;
-                RSA *privateRsa = nullptr;
-                if((fp = fopen("pri1.pem","r")) == NULL) {
-                    cout << "pub Error" << endl;
-                    exit(-1);
-                }
-                OpenSSL_add_all_algorithms();//密钥有经过口令加密需要这个函数
-                if ((privateRsa = PEM_read_RSAPrivateKey(fp, NULL, NULL, (char *)PASS)) == NULL) 
-                {
-                    printf("PEM_read_RSAPrivateKey error\n");
-                    return NULL;
-                }
-                fclose(fp);
-                //cout << client_message;
-                unsigned char *source = (unsigned char *)client_message;// ciphertxt
-
-                int rsa_len = RSA_size(privateRsa);
-                unsigned char *decryptMsg = (unsigned char *)malloc(rsa_len);
-                memset(decryptMsg, 0, rsa_len);
-                int mun =  RSA_private_decrypt(rsa_len, source, decryptMsg, privateRsa, RSA_PKCS1_PADDING);
-                if ( mun < 0)
-                    printf("\nRSA_private_decrypt error\n");
-                else
-                {   
-                    printf("\nRSA_private_decrypt -> %s\n", decryptMsg);
-                }
-                //cerr << "enc: " <<(const char*) enc << ":" << endl;
-                //cerr << "enc: " << enc << ":" << endl;
-                RSA_free(privateRsa);
-
-/* end of decrypt */
-
-                message.clear();
-                message.assign((char*) decryptMsg);
                 string sender, receiver, tmp;
                 int tran_money;
                 tmp = message.substr(message.find("#")+1);
@@ -363,14 +325,12 @@ void * socketThread(void *arg)
                 //cout << "name: " << save << "\nmoney: " << save_money << endl;
                 
             }
-            /*
             else{
                 message.clear();
                 message = "Please enter 'List' to List the online member or 'Exit' to leave.\n";
                 strcpy(buffer,message.c_str());
                 send(newSocket,buffer,sizeof(char)*BUFF_SIZE,0);
             }
-            */
         }
         pthread_mutex_unlock(&lock);
     }

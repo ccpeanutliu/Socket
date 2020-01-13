@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 #include <string>
 #include <iostream>
+#include <sys/wait.h>
 using namespace std;
 #define B_SIZE 512
 
@@ -65,6 +66,12 @@ int main(int argc , char *argv[])
     cout << buffer;
     bool isLogin = false;
     string login_name;
+    int my_port;
+
+    // for transaction
+    string ipaddr2;
+    int port2;
+
     while(1)
     {
         cout << "What you ganna do?\n";
@@ -78,6 +85,8 @@ int main(int argc , char *argv[])
         {
             cout << "3. List money and online member.\n";
             cout << "4. Exit.\n";
+            cout << "5. Transaction with someone\n";
+            cout << "6. Accept someone's transaction\n";
         }
         cout << "Your choice: ";
             
@@ -85,7 +94,7 @@ int main(int argc , char *argv[])
         while(1)
         {
             cin >> method;
-            if(method <= 5 && method > 0)
+            if(method <= 6 && method > 0)
                 break;
             else
                 cout << "please follow my tips.\n";
@@ -112,6 +121,7 @@ int main(int argc , char *argv[])
             strcat(sendbuf, "#");
             cout << "What's your port?\n";
             cin >> tmp;
+            my_port = atoi(tmp.c_str());
             strcat(sendbuf, tmp.c_str());
             strcat(sendbuf, "\n");
             isLogin = true;
@@ -135,17 +145,126 @@ int main(int argc , char *argv[])
             cout << buffer;
             break;
         }
+        // transaction ~~~
         else if(method == 5)
         {
-            string name;
-            cout << "who do you want to contact?\n";
-            cout << "name: ";
-            cin >> name;
-            strcat(sendbuf, "Conversation#");
-            strcat(sendbuf, name.c_str());
-            strcat(sendbuf, "\n");
+            int status;
+            if(fork() == 0)
+            {
+                string name;
+                string rcvmsg;
+                cout << "who do you want to transaction?\n";
+                cout << "name: ";
+                cin >> name;
+                memset(sendbuf,'\0',sizeof(sendbuf));
+                strcat(sendbuf, "Tran#");
+                strcat(sendbuf, name.c_str());
+                strcat(sendbuf, "\n");
+                //cout << sendbuf;
+                send(sockfd,sendbuf,B_SIZE,0);
+                if(1)
+                {
+                    memset(&buffer[0],0,sizeof(buffer));
+                    for(int j = 0; j < 2; j++)
+                        recv(sockfd,buffer,B_SIZE,0);
+                    cout << "\n-----From server-----\n" << buffer << "\n";
+                    rcvmsg.assign(buffer);
+                }
+                if(rcvmsg.find("250") == string::npos)
+                {
+                    ipaddr2 = rcvmsg.substr(0,rcvmsg.find("#"));
+                    string tmp;
+                    tmp = rcvmsg.substr(rcvmsg.find("#")+1, rcvmsg.find("\n")-1);
+                    port2 = atoi(tmp.c_str());
+                }
+                else
+                    continue;
 
+                
+                cout << "Please enter the cash you want to transaction: ";
+                string money;
+                cin >> money;
+                int sockfd2 = socket(AF_INET , SOCK_STREAM , 0);
+                if (sockfd2 == -1){
+                    cout << "Fail to create a socket.";
+                    return 0;
+                }
+                struct sockaddr_in info2;
+                bzero(&info,sizeof(info2));
+                info2.sin_family = PF_INET;
+                info2.sin_addr.s_addr = inet_addr(ipaddr2.c_str());
+                info2.sin_port = htons(port2);
+                int err = connect(sockfd2,(struct sockaddr *)&info2,sizeof(info2));
+                if(err == -1){
+                    cout << "Connection error";
+                    return 0;
+                }
+                memset(sendbuf, '\0', sizeof(sendbuf));
+                strcpy(sendbuf, login_name.c_str());
+                strcat(sendbuf, "#");
+                strcat(sendbuf, money.c_str());
+                strcat(sendbuf, "\n");
+
+                send(sockfd2, sendbuf, B_SIZE, 0);
+            }
+            else
+                wait(&status);
+            continue;
         }
+        else if(method == 6)
+        {
+            int status, fd[2];
+            pipe(fd);
+            if(fork() == 0)
+            {
+                int socket_desc2 , new_socket2 , c2;
+                struct sockaddr_in server2, client2;
+                char *message2;
+                
+                //Create socket
+                socket_desc2 = socket(AF_INET , SOCK_STREAM , 0);
+                if (socket_desc2 == -1)
+                {
+                    printf("Could not create socket");
+                }
+                
+                //Prepare the sockaddr_in structure
+                server2.sin_family = AF_INET;
+                server2.sin_addr.s_addr = INADDR_ANY;
+                cout << "my_port -> " << my_port << endl;
+                server2.sin_port = htons(my_port);
+                
+                //Bind
+                if( bind(socket_desc2,(struct sockaddr *)&server2 , sizeof(server2)) < 0)
+                {
+                    puts("bind failed");
+                    return 1;
+                }
+                //puts("bind done");
+                listen(socket_desc2 , 3);
+                
+                //Accept and incoming connection
+                puts("Waiting for incoming connections...");
+                c2 = sizeof(struct sockaddr_in);
+                new_socket2 = accept(socket_desc2, (struct sockaddr *)&client2, (socklen_t*)&c2);
+                if (new_socket2<0)
+                {
+                    perror("accept failed");
+                    return 1;
+                }
+                memset(buffer,'\0',sizeof(buffer));
+                recv(new_socket2, buffer, B_SIZE, 0);
+                cout << buffer;
+
+                close(fd[0]);
+                close(fd[1]);
+                close(new_socket2);
+                //puts("Connection accepted");
+            }
+            continue;
+        }
+
+        // transaction~~~
         else
         {
             cout << "\nSomething wrong!!!\n";
@@ -163,9 +282,6 @@ int main(int argc , char *argv[])
         {    
             isLogin = false;
             login_name.clear();
-        }
-        else if(judge.find("IP address") != string::npos)
-        {
         }
     }
     

@@ -218,23 +218,42 @@ void * socketThread(void *arg)
                 onlineinfo.erase(onlineinfo.begin()+logout);
                 break;
             }
-            else if(message.find("#") != string::npos)
+            else if(message.find("Tran#") != string::npos)
             {
-                string contact(message.find("#")+1,message.find("\n")-message.find("#")-1);
+                
+                cout << "message -> " << message << endl;
+                string contact;
+                contact = message.substr(5,message.find("\n")-1);
+                cout << contact;
                 string contactip;
+                string contactport;
+                int exist = 0;
                 for(int i = 0; i < online; i++)
                 {
-                    if(onlineinfo[i].name == contact)
+                    if(onlineinfo[i].name+"\n" == contact)
                     {
                         contactip = onlineinfo[i].ipAddr;
+                        contactport = onlineinfo[i].portnum;
+                        exist = 1;
                         break;
                     }
                 }
-                strcpy(buffer, contact);
-                strcat(buffer, "'s IP address: ");
-                strcat(buffer, contactip);
-                strcat(buffer, "\n");
-                send(newSocket, buffer, BUFF_SIZE, 0);
+                if(exist)
+                {
+                    strcpy(buffer, contactip.c_str());
+                    strcat(buffer, "#");
+                    strcat(buffer, contactport.c_str());
+                    strcat(buffer, "\n");
+                    cout << buffer;
+                    send(newSocket, buffer, BUFF_SIZE, 0);
+                }
+                else
+                {
+                    memset(buffer,'\0',sizeof(buffer));
+                    strcpy(buffer, "250 NOT_ONLINE\n");
+                    cout << buffer;
+                    send(newSocket, buffer, BUFF_SIZE, 0);
+                }
             }
             else{
                 message.clear();
@@ -252,6 +271,7 @@ void * socketThread(void *arg)
     close(newSocket);
     pthread_exit(NULL);
 }
+
 int main(int argc, char *argv[]){
     if(argc < 2)
     {

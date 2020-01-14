@@ -14,7 +14,7 @@
 #include <iostream>
 #include <sys/wait.h>
 using namespace std;
-#define B_SIZE 512
+#define B_SIZE 1024
 #define PASS "8888"
 
 int main(int argc , char *argv[])
@@ -144,8 +144,7 @@ int main(int argc , char *argv[])
             strcpy(sendbuf,"Exit\n");
             send(sockfd,sendbuf,B_SIZE,0);  
             memset(&buffer[0],0,B_SIZE);
-            for(int j = 0; j < 2; j++)
-                recv(sockfd,buffer,sizeof(buffer),0);
+            recv(sockfd,buffer,sizeof(buffer),0);
             cout << buffer;
             break;
         }
@@ -169,8 +168,7 @@ int main(int argc , char *argv[])
                 if(1)
                 {
                     memset(&buffer[0],0,sizeof(buffer));
-                    for(int j = 0; j < 2; j++)
-                        recv(sockfd,buffer,B_SIZE,0);
+                    recv(sockfd,buffer,B_SIZE,0);
                     cout << "\n-----From server-----\n" << buffer << "\n";
                     rcvmsg.assign(buffer);
                 }
@@ -296,7 +294,7 @@ int main(int argc , char *argv[])
                 }
                 memset(buffer,'\0',sizeof(buffer));
                 recv(new_socket2, buffer, B_SIZE, 0);
-
+                cout << "before decrypt -> " << B_SIZE << endl;
 /* start decrypt */
 
                 FILE *fp;
@@ -330,7 +328,7 @@ int main(int argc , char *argv[])
 
 /* end of decrypt */
 
-
+                cout << "origin -> " << decryptMsg << endl;
                 string rcvmsg((char*)(decryptMsg));
                 cout << "decrypt -> " << rcvmsg << endl;
                 //string rcvmsg(buffer);
@@ -345,12 +343,12 @@ int main(int argc , char *argv[])
                 strcat(sendbuf, login_name.c_str());
                 strcat(sendbuf, "#");
                 strcat(sendbuf, (rcvmsg.substr(rcvmsg.find("#")+1)).c_str());
-                cout << "sendbuf -> " << sendbuf << endl;
+                
 
 /* encrypt start */
 
                 FILE *fp1;
-                RSA *publicRsa = nullptr;
+                RSA *publicRsa1 = nullptr;
                 if((fp1 = fopen("pub1.pem","r")) == NULL) {
                     cout << "pub Error" << endl;
                     exit(-1);
@@ -358,27 +356,27 @@ int main(int argc , char *argv[])
                 // 初始化算法庫
                 OpenSSL_add_all_algorithms();
                 // 從 .pem 格式讀取公私鑰
-                if ((publicRsa = PEM_read_RSA_PUBKEY(fp, NULL, NULL, NULL)) == NULL) 
+                if ((publicRsa1 = PEM_read_RSA_PUBKEY(fp, NULL, NULL, NULL)) == NULL) 
                 {
                     printf("PEM_read_RSA_PUBKEY error\n");
                     return -1;
                 }
                 fclose(fp);
                 unsigned char *source1 = (unsigned char *)sendbuf;// plaintxt
-                rsa_len = RSA_size(publicRsa); // 幫你算可以加密 block 大小，字數超過要分開加密
+                int rsa_len1 = RSA_size(publicRsa1); // 幫你算可以加密 block 大小，字數超過要分開加密
 
                 // 要開空間來存放加解密結果，型態要改成 unsigned char *
 
-                unsigned char *encryptMsg = (unsigned char *)malloc(rsa_len);
-                memset(encryptMsg, 0, rsa_len); 
+                unsigned char *encryptMsg = (unsigned char *)malloc(rsa_len1);
+                memset(encryptMsg, 0, rsa_len1); 
 
-                int len = rsa_len - 11;
+                int len = rsa_len1 - 11;
         
-                if (RSA_public_encrypt(len, source1, encryptMsg, publicRsa, RSA_PKCS1_PADDING) < 0)
+                if (RSA_public_encrypt(len, source1, encryptMsg, publicRsa1, RSA_PKCS1_PADDING) < 0)
                     printf("RSA_public_encrypt error\n");
                 //cerr << "enc: " <<(const char*) enc << ":" << endl;
                 //cerr << "enc: " << enc << ":" << endl;
-                RSA_free(publicRsa);
+                RSA_free(publicRsa1);
 
                 //cout << "len:" << strlen( (const char*) enc) << endl;
 /* encrypt done*/
@@ -386,7 +384,7 @@ int main(int argc , char *argv[])
 
                 //send(sockfd, sendbuf, B_SIZE, 0);
                 cout << "to server -> " << encryptMsg << endl;
-                send(sockfd, (const char*)encryptMsg, strlen((const char*) encryptMsg), 0);
+                send(sockfd, (const char*)encryptMsg, rsa_len1, 0);
                 close(fd[0]);
                 close(fd[1]);
                 close(new_socket2);
@@ -402,8 +400,7 @@ int main(int argc , char *argv[])
         }
         send(sockfd,sendbuf,B_SIZE,0);
         memset(&buffer[0],0,sizeof(buffer));
-        for(int j = 0; j < 2; j++)
-            recv(sockfd,buffer,B_SIZE,0);
+        recv(sockfd,buffer,B_SIZE,0);
         
         cout << "\n-----From server-----\n" << buffer << "\n";
         string judge;
